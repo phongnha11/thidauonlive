@@ -10,105 +10,116 @@ st.set_page_config(
     initial_sidebar_state="collapsed" # Thu gọn sidebar để ưu tiên trình chiếu
 )
 
-# --- CSS TÙY CHỈNH CAO CẤP (GIAO DIỆN GAME SHOW) ---
+# --- CSS TÙY CHỈNH CAO CẤP (GIAO DIỆN LỚP HỌC TƯƠI SÁNG) ---
 st.markdown("""
 <style>
-    /* 1. NỀN TRANG WEB: Gradient Xanh Tím Đậm chất Công Nghệ */
+    /* 1. NỀN TRANG WEB: Gradient Xanh Tươi Sáng (Phù hợp lớp học) */
     .stApp {
-        background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
-        background-size: 400% 400%;
-        animation: gradient 15s ease infinite;
-    }
-    @keyframes gradient {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
+        background: linear-gradient(120deg, #d4fc79 0%, #96e6a1 100%);
+        background-attachment: fixed;
     }
 
     /* 2. KHUNG CÂU HỎI */
     .question-card {
-        background-color: rgba(255, 255, 255, 0.95);
-        border-radius: 20px;
-        padding: 30px;
-        margin-bottom: 20px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        background-color: #ffffff;
+        border-radius: 25px;
+        padding: 40px;
+        margin-bottom: 30px;
+        box-shadow: 0 15px 30px rgba(0,0,0,0.1);
         text-align: center;
-        border: 4px solid #3B82F6;
+        border: 5px solid #10B981; /* Viền xanh lá đậm */
     }
     .question-text {
-        font-size: 32px !important;
+        font-size: 40px !important; /* Chữ câu hỏi RẤT TO */
         font-weight: 900 !important;
-        color: #1e3a8a;
+        color: #064E3B; /* Xanh rêu đậm dễ đọc */
         line-height: 1.4;
     }
 
-    /* 3. CODE BLOCK */
+    /* 3. CODE BLOCK (Hiển thị Code Python chuẩn) */
     .code-container {
-        background-color: #1e293b;
-        color: #fbbf24;
-        padding: 20px;
-        border-radius: 10px;
-        font-family: 'Courier New', monospace;
-        font-size: 24px;
+        background-color: #1E293B; /* Nền tối giống IDE */
+        color: #FACC15; /* Chữ vàng nổi bật */
+        padding: 25px;
+        border-radius: 15px;
+        font-family: 'Consolas', 'Courier New', monospace; /* Phông code chuẩn */
+        font-size: 32px; /* Code RẤT TO */
         font-weight: bold;
         text-align: left;
-        margin: 15px 0;
-        border-left: 5px solid #fbbf24;
+        margin: 20px auto; /* Canh giữa */
+        width: 90%;
+        border-left: 10px solid #F59E0B;
+        white-space: pre-wrap; /* Giữ nguyên thụt đầu dòng */
+        box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
     }
 
-    /* 4. NÚT ĐÁP ÁN (A, B, C, D) */
+    /* 4. NÚT ĐÁP ÁN (A, B, C, D) - SIÊU TO CHO MÁY CHIẾU */
     div.stButton > button {
         width: 100%;
-        height: 80px;
-        font-size: 24px !important;
-        font-weight: bold !important;
-        border-radius: 15px !important;
-        border: 2px solid rgba(255,255,255,0.2) !important;
-        background-color: rgba(255,255,255,0.9) !important;
-        color: #1e3a8a !important;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        transition: all 0.2s;
+        height: 120px; /* Cao hơn */
+        font-size: 35px !important; /* Chữ đáp án CỰC LỚN */
+        font-weight: 900 !important;
+        border-radius: 20px !important;
+        border: 4px solid #ffffff !important;
+        background-color: #3B82F6 !important; /* Màu xanh dương chủ đạo */
+        color: #ffffff !important;
+        box-shadow: 0 8px 0 #1D4ED8, 0 15px 20px rgba(0,0,0,0.2); /* Hiệu ứng nút nổi 3D */
+        transition: all 0.1s;
+        margin-bottom: 15px;
     }
     div.stButton > button:hover {
-        transform: translateY(-5px);
-        background-color: #ffffff !important;
-        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        transform: translateY(-4px);
+        background-color: #2563EB !important;
+        box-shadow: 0 10px 0 #1D4ED8, 0 20px 25px rgba(0,0,0,0.2);
+    }
+    div.stButton > button:active {
+        transform: translateY(4px);
+        box-shadow: 0 0 0 #1D4ED8, 0 0 0 rgba(0,0,0,0);
+    }
+    /* Xử lý text trong nút button của streamlit */
+    div.stButton > button p {
+        font-size: 35px !important;
     }
 
     /* 5. BẢNG ĐIỂM (TEAM CARD) */
     .team-card-wrapper {
-        background: rgba(255, 255, 255, 0.9);
+        background: #ffffff;
         border-radius: 15px;
-        padding: 15px;
-        margin-bottom: 15px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-        transition: transform 0.3s;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         display: flex;
         justify-content: space-between;
         align-items: center;
-        border-left: 10px solid #ccc;
+        border-left: 15px solid #ccc;
     }
-    .team-name-display { font-size: 22px; font-weight: bold; color: #333; }
-    .team-score-display { font-size: 28px; font-weight: 900; color: #d32f2f; }
+    .team-name-display { font-size: 26px; font-weight: bold; color: #333; }
+    .team-score-display { font-size: 36px; font-weight: 900; color: #EF4444; }
     
-    /* 6. TRẠNG THÁI (STATUS BAR) */
+    /* 6. TRẠNG THÁI (STATUS BANNER) */
     .status-banner {
-        padding: 15px;
+        padding: 20px;
         border-radius: 50px;
         text-align: center;
-        font-size: 28px; 
+        font-size: 32px; 
         font-weight: 900;
         color: white;
-        margin-bottom: 20px;
-        box-shadow: 0 0 20px rgba(255,255,255,0.5);
+        margin-bottom: 30px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         text-transform: uppercase;
         letter-spacing: 2px;
+        border: 4px solid white;
     }
+
+    /* Ẩn header mặc định của Streamlit để rộng chỗ */
+    header {visibility: hidden;}
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
 
 </style>
 """, unsafe_allow_html=True)
 
-# --- LOGIC GAME (GIỮ NGUYÊN TỪ PHIÊN BẢN TRƯỚC) ---
+# --- LOGIC GAME (GIỮ NGUYÊN) ---
 @st.cache_resource
 class GameManager:
     def __init__(self):
@@ -125,23 +136,56 @@ class GameManager:
 
     def generate_questions(self):
         qs = []
-        # Câu hỏi mẫu
-        qs.append({"q": "Kết quả của: print(10 > 5 and not 3 < 1)", "code": None, "ans": "True", "opts": ["True", "False", "Error", "None"]})
-        qs.append({"q": "Output vòng lặp?", "code": "for i in range(1, 4):\n    print(i, end='')", "ans": "123", "opts": ["123", "1234", "0123", "1 2 3"]})
-        qs.append({"q": "Giá trị k cuối cùng?", "code": "k = 0\nwhile k < 5:\n    k += 2", "ans": "6", "opts": ["4", "5", "6", "Loop"]})
-        qs.append({"q": "Phép toán: 16 % 3 ** 2", "code": None, "ans": "7", "opts": ["7", "1", "0", "16"]})
-        qs.append({"q": "Hàm nào dùng để nhập dữ liệu?", "code": None, "ans": "input()", "opts": ["print()", "input()", "scan()", "read()"]})
+        # Các câu hỏi về cấu trúc lệnh (Code Python)
+        qs.append({
+            "q": "Kết quả của biểu thức logic sau?", 
+            "code": "print(10 > 5 and not 3 < 1)", 
+            "ans": "True", 
+            "opts": ["True", "False", "Error", "None"]
+        })
+        qs.append({
+            "q": "Vòng lặp sau in ra kết quả gì?", 
+            "code": "for i in range(1, 4):\n    print(i, end=' ')", 
+            "ans": "1 2 3", 
+            "opts": ["1 2 3", "1 2 3 4", "0 1 2", "123"]
+        })
+        qs.append({
+            "q": "Giá trị cuối cùng của k là bao nhiêu?", 
+            "code": "k = 0\nwhile k < 6:\n    k = k + 2", 
+            "ans": "6", 
+            "opts": ["4", "5", "6", "Loop vô hạn"]
+        })
+        qs.append({
+            "q": "Phép toán này trả về giá trị bao nhiêu?", 
+            "code": "x = 16 % 3 ** 2\nprint(x)", 
+            "ans": "7", 
+            "opts": ["7", "1", "0", "16"]
+        })
+        qs.append({
+            "q": "Lệnh nào dùng để nhập dữ liệu từ bàn phím?", 
+            "code": "name = ______('Nhập tên:')", 
+            "ans": "input", 
+            "opts": ["print", "input", "scan", "read"]
+        })
+        qs.append({
+            "q": "Đoạn code sau in ra gì?",
+            "code": "x = 10\nif x > 5:\n    print('Lớn')\nelse:\n    print('Bé')",
+            "ans": "Lớn",
+            "opts": ["Lớn", "Bé", "Không in gì", "Lỗi"]
+        })
         
-        for i in range(20):
+        # Sinh thêm câu hỏi toán ngẫu nhiên
+        for i in range(15):
             a, b = random.randint(10, 50), random.randint(2, 9)
             res = a % b
             qs.append({
-                "q": f"Kết quả của {a} % {b} là?", 
-                "code": None, 
+                "q": f"Kết quả của phép chia lấy dư?", 
+                "code": f"{a} % {b}", 
                 "ans": str(res), 
                 "opts": [str(res), str(a//b), str(res+1), str(b)]
             })
         
+        # Xáo trộn đáp án
         for q in qs:
             random.shuffle(q["opts"])
         return qs
@@ -166,10 +210,10 @@ class GameManager:
         
         if selected_opt == correct_ans:
             self.teams[active_team] += 10
-            self.last_result = f"CHÍNH XÁC! {active_team} +10 ĐIỂM"
+            self.last_result = f"🎉 CHÍNH XÁC! {active_team} +10 ĐIỂM"
             self.mode = "RESULT" 
         else:
-            self.last_result = f"SAI RỒI! ĐÁP ÁN: {correct_ans}"
+            self.last_result = f"😓 SAI RỒI! ĐÁP ÁN: {correct_ans}"
             if self.mode == "QUESTION":
                 self.mode = "STEAL"
                 self.buzzer_winner = None
@@ -198,35 +242,32 @@ role = params.get("role", "player")
 # ==============================================================================
 if role == "host":
     
-    # 1. SIDEBAR: CÔNG CỤ QUẢN TRỊ (Ẩn đi khi trình chiếu)
+    # 1. SIDEBAR (Ẩn)
     with st.sidebar:
-        st.header("⚙️ CÔNG CỤ GIÁO VIÊN")
+        st.header("⚙️ CÀI ĐẶT")
         if st.button("🔄 Reset Game"):
             game.reset_game()
             st.rerun()
         st.divider()
-        st.write("Link cho học sinh:")
+        st.write("Link HS:")
         st.code("https://python-arena.streamlit.app/", language="text")
-        st.info("Mẹo: Nhấn '>' ở góc trên trái để thu gọn thanh này khi trình chiếu.")
 
-    # 2. MÀN HÌNH CHÍNH (GRID LAYOUT)
-    # Chia màn hình: Cột 1 (Điểm số - Nhỏ) | Cột 2 (Sân khấu - Lớn)
-    col_score, col_stage = st.columns([1, 3], gap="medium")
+    # 2. MÀN HÌNH CHÍNH (GRID LAYOUT 25% - 75%)
+    col_score, col_stage = st.columns([1, 3], gap="large")
 
     # --- CỘT TRÁI: BẢNG ĐIỂM ---
     with col_score:
-        st.markdown("<h2 style='color:white; text-align:center;'>🏆 XẾP HẠNG</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='color:#064E3B; text-align:center;'>🏆 XẾP HẠNG</h2>", unsafe_allow_html=True)
         if not game.teams:
-            st.warning("Chưa có đội...")
+            st.info("Chưa có đội...")
         
-        # Sắp xếp và hiển thị
         sorted_teams = sorted(game.teams.items(), key=lambda x: x[1], reverse=True)
-        colors = ["#FFD700", "#C0C0C0", "#CD7F32", "#FFFFFF"] # Vàng, Bạc, Đồng, Trắng
+        colors = ["#F59E0B", "#94A3B8", "#B45309", "#FFFFFF"] # Vàng, Bạc, Đồng
         
         for idx, (name, score) in enumerate(sorted_teams):
             border_color = colors[idx] if idx < 3 else "#ccc"
-            # Highlight đội đang đến lượt
-            active_style = "transform: scale(1.05); box-shadow: 0 0 15px yellow;" if idx == game.turn_index % len(game.teams) and game.mode == "QUESTION" else ""
+            # Highlight đội đang chơi
+            active_style = "transform: scale(1.05); border: 4px solid #F59E0B;" if idx == game.turn_index % len(game.teams) and game.mode == "QUESTION" else ""
             
             st.markdown(f"""
             <div class="team-card-wrapper" style="border-left-color: {border_color}; {active_style}">
@@ -241,15 +282,14 @@ if role == "host":
         # A. MÀN HÌNH CHỜ
         if game.mode == "WAITING":
             st.markdown("""
-            <div style='text-align:center; padding: 50px; background: rgba(255,255,255,0.1); border-radius: 20px;'>
-                <h1 style='font-size: 60px; color: #FBBF24;'>ĐẤU TRƯỜNG PYTHON</h1>
-                <h3 style='color: white;'>Đang chờ các đội kết nối...</h3>
-                <div style='font-size: 20px; color: #ddd;'>Giáo viên hãy kiểm tra danh sách đội bên trái</div>
+            <div style='text-align:center; padding: 80px; background: rgba(255,255,255,0.8); border-radius: 30px; box-shadow: 0 20px 40px rgba(0,0,0,0.1);'>
+                <h1 style='font-size: 70px; color: #059669; margin-bottom: 20px;'>🐍 ĐẤU TRƯỜNG PYTHON</h1>
+                <h2 style='color: #374151;'>Đang chờ các đội kết nối...</h2>
             </div>
             """, unsafe_allow_html=True)
             
             if len(game.teams) > 0:
-                st.write("") # Spacer
+                st.write("") 
                 if st.button("🚀 BẮT ĐẦU TRẬN ĐẤU", type="primary", use_container_width=True):
                     game.start_game()
                     st.rerun()
@@ -265,34 +305,34 @@ if role == "host":
 
             # 1. THANH TRẠNG THÁI (STATUS BANNER)
             if game.mode == "QUESTION":
-                st.markdown(f'<div class="status-banner" style="background: linear-gradient(90deg, #3B82F6, #2563EB);">LƯỢT CỦA: {current_turn_team}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="status-banner" style="background: #3B82F6;">LƯỢT CỦA: {current_turn_team}</div>', unsafe_allow_html=True)
             elif game.mode == "STEAL":
-                st.markdown('<div class="status-banner" style="background: linear-gradient(90deg, #EF4444, #B91C1C); animation: pulse 1s infinite;">🚨 CƯỚP QUYỀN! AI NHANH TAY HƠN?</div>', unsafe_allow_html=True)
+                st.markdown('<div class="status-banner" style="background: #EF4444; animation: pulse 1s infinite;">🚨 CƯỚP QUYỀN! AI NHANH TAY?</div>', unsafe_allow_html=True)
                 time.sleep(0.5)
                 st.rerun()
             elif game.mode == "LOCKED":
-                st.markdown(f'<div class="status-banner" style="background: linear-gradient(90deg, #F59E0B, #D97706);">⚡ {game.buzzer_winner} GIÀNH QUYỀN!</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="status-banner" style="background: #F59E0B;">⚡ {game.buzzer_winner} GIÀNH QUYỀN!</div>', unsafe_allow_html=True)
             elif game.mode == "RESULT":
-                bg = "linear-gradient(90deg, #10B981, #059669)" if "CHÍNH XÁC" in game.last_result else "linear-gradient(90deg, #EF4444, #B91C1C)"
+                bg = "#10B981" if "CHÍNH XÁC" in game.last_result else "#EF4444"
                 st.markdown(f'<div class="status-banner" style="background: {bg};">{game.last_result}</div>', unsafe_allow_html=True)
 
-            # 2. KHUNG CÂU HỎI (QUESTION CARD)
+            # 2. KHUNG CÂU HỎI & CODE
             st.markdown(f"""
             <div class="question-card">
-                <div style="font-size: 20px; color: #666; margin-bottom: 10px;">CÂU HỎI {game.current_q_index + 1}/80</div>
+                <div style="font-size: 24px; color: #64748B; margin-bottom: 10px; font-weight:bold;">CÂU HỎI {game.current_q_index + 1}/80</div>
                 <div class="question-text">{q_data['q']}</div>
             </div>
             """, unsafe_allow_html=True)
             
+            # Hiển thị Code Python đẹp
             if q_data['code']:
                 st.markdown(f'<div class="code-container">{q_data["code"]}</div>', unsafe_allow_html=True)
 
-            # 3. LƯỚI ĐÁP ÁN (4 BUTTONS)
-            st.write("") # Spacer
+            # 3. LƯỚI ĐÁP ÁN (4 BUTTONS TO)
+            st.write("") 
             
-            # Xử lý hiển thị nút bấm
+            # Xử lý nút bấm
             if game.mode == "RESULT":
-                # Nút chuyển câu (Full width)
                 if st.button("CÂU TIẾP THEO ➡️", type="primary", use_container_width=True):
                     game.next_question()
                     st.rerun()
@@ -301,8 +341,8 @@ if role == "host":
                     game.next_question()
                     st.rerun()
             else:
-                # Hiển thị 4 đáp án dạng lưới 2x2
-                c1, c2 = st.columns(2, gap="small")
+                # Layout 2x2 cho đáp án
+                c1, c2 = st.columns(2, gap="medium")
                 opts = q_data['opts']
                 
                 with c1:
@@ -312,23 +352,21 @@ if role == "host":
                     if st.button(f"B. {opts[1]}", use_container_width=True): game.check_answer(opts[1]); st.rerun()
                     if st.button(f"D. {opts[3]}", use_container_width=True): game.check_answer(opts[3]); st.rerun()
 
-            # Footer
-            st.markdown("<div style='text-align: right; color: rgba(255,255,255,0.5); margin-top: 20px;'>Python Arena v2.0</div>", unsafe_allow_html=True)
-
 # ==============================================================================
-# GIAO DIỆN HỌC SINH (PLAYER) - MOBILE OPTIMIZED
+# GIAO DIỆN HỌC SINH (PLAYER)
 # ==============================================================================
 else:
-    # Ẩn sidebar trên mobile
+    # Ẩn sidebar và header
     st.markdown("""
         <style>
             [data-testid="stSidebar"] {display: none;}
-            .mobile-header { background: white; padding: 15px; border-radius: 15px; text-align: center; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+            header {visibility: hidden;}
+            .mobile-header { background: white; padding: 20px; border-radius: 20px; text-align: center; margin-bottom: 30px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); border-bottom: 5px solid #10B981; }
         </style>
     """, unsafe_allow_html=True)
 
     if "team_name" not in st.session_state:
-        st.markdown("<h1 style='color: white; text-align: center;'>📱 THAM GIA</h1>", unsafe_allow_html=True)
+        st.markdown("<h1 style='color: #064E3B; text-align: center; margin-top: 50px;'>📱 THAM GIA</h1>", unsafe_allow_html=True)
         name = st.text_input("Tên đội:", placeholder="VD: Team 1")
         if st.button("VÀO PHÒNG NGAY", type="primary", use_container_width=True) and name:
             if game.register_team(name):
@@ -339,12 +377,12 @@ else:
     else:
         my_team = st.session_state.team_name
         
-        # Header Info Mobile
+        # Thông tin đội
         st.markdown(f"""
         <div class="mobile-header">
-            <div style="font-size: 14px; color: #666;">ĐỘI CỦA BẠN</div>
-            <div style="font-size: 24px; font-weight: 900; color: #1E3A8A;">{my_team}</div>
-            <div style="font-size: 18px; font-weight: bold; color: #EF4444;">{game.teams.get(my_team, 0)} điểm</div>
+            <div style="font-size: 16px; color: #64748B; font-weight:bold;">ĐỘI CỦA BẠN</div>
+            <div style="font-size: 32px; font-weight: 900; color: #059669;">{my_team}</div>
+            <div style="font-size: 24px; font-weight: bold; color: #EF4444;">{game.teams.get(my_team, 0)} điểm</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -353,15 +391,16 @@ else:
             st.markdown("""
             <style>
                 div.stButton > button:first-child {
-                    height: 300px !important;
-                    background: radial-gradient(circle, #ff4b4b 0%, #b91c1c 100%) !important;
+                    height: 350px !important;
+                    background: radial-gradient(circle, #EF4444 0%, #B91C1C 100%) !important;
                     color: white !important;
-                    font-size: 40px !important;
-                    border: 8px solid white !important;
+                    font-size: 50px !important;
+                    border: 10px solid white !important;
                     border-radius: 50% !important;
-                    box-shadow: 0 0 30px #ff4b4b;
+                    box-shadow: 0 0 40px #EF4444;
                     animation: pulse 0.5s infinite;
                 }
+                @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
             </style>
             """, unsafe_allow_html=True)
             if st.button("BẤM!"):
@@ -376,13 +415,16 @@ else:
                 st.error(f"🔒 CHẬM MẤT RỒI! ({game.buzzer_winner})")
         
         elif game.mode == "QUESTION":
-            st.info("👀 HÃY NHÌN LÊN BẢNG...")
+            st.info("👀 HÃY NHÌN LÊN BẢNG VÀ SUY NGHĨ...")
         
         elif game.mode == "RESULT":
-            st.write(f"Kết quả: {game.last_result}")
+            if "CHÍNH XÁC" in game.last_result:
+                st.success(game.last_result)
+            else:
+                st.error(game.last_result)
         
         else:
-            st.write("Đang chờ...")
+            st.write("Đang chờ giáo viên...")
 
         time.sleep(1)
         st.rerun()

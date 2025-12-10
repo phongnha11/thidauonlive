@@ -1,3 +1,5 @@
 streamlit
 qrcode
+pandas
+openpyxl
 pillow

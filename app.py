@@ -8,10 +8,17 @@ from io import BytesIO
 # --- CẤU HÌNH TRANG ---
 st.set_page_config(page_title="Đấu Trường Python", page_icon="🐍", layout="wide")
 
-# --- QUẢN LÝ TRẠNG THÁI TOÀN CỤC (GLOBAL STATE) ---
-# Dùng st.cache_resource để lưu dữ liệu game trên RAM của Server
-# Dữ liệu này sẽ được CHIA SẺ giữa tất cả người dùng (Giáo viên & Học sinh)
+# --- CSS TÙY CHỈNH ---
+st.markdown("""
+<style>
+    .big-btn { width: 100%; height: 80px !important; font-size: 24px !important; font-weight: bold; border-radius: 10px; }
+    .status-box { padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 15px; color: white; font-weight: bold; font-size: 20px; }
+    .team-card { background-color: #f0f2f6; padding: 10px; border-radius: 8px; border-left: 5px solid #ff4b4b; margin-bottom: 5px; }
+    div[data-testid="stButton"] button { width: 100%; }
+</style>
+""", unsafe_allow_html=True)
 
+# --- QUẢN LÝ TRẠNG THÁI GAME (GLOBAL) ---
 @st.cache_resource
 class GameManager:
     def __init__(self):
@@ -21,220 +28,262 @@ class GameManager:
         self.teams = {} # { "Tên Đội": điểm }
         self.questions = self.generate_questions()
         self.current_q_index = 0
-        self.mode = "WAITING" # WAITING, QUESTION, STEAL, LOCKED
+        self.mode = "WAITING" # WAITING, QUESTION, STEAL, LOCKED, RESULT
         self.buzzer_winner = None
-        self.last_updated = time.time()
+        self.last_result = "" # Lưu thông báo kết quả (Đúng/Sai)
+        self.turn_index = 0 # Chỉ số đội đến lượt trả lời (Round Robin)
 
     def generate_questions(self):
-        # Ngân hàng câu hỏi vận dụng (Logic, Vòng lặp, Toán)
+        # Ngân hàng câu hỏi
         qs = []
-        # Dạng 1: Dự đoán Output
-        qs.append({"q": "Kết quả của: print(10 > 5 and not 3 < 1)", "code": None, "ans": "True", "opts": ["True", "False", "Error", "None"]})
-        qs.append({"q": "Vòng lặp sau in ra bao nhiêu số?", "code": "for i in range(10, 5, -2):\n    print(i)", "ans": "3", "opts": ["2", "3", "5", "0"]})
-        qs.append({"q": "Giá trị cuối cùng của k?", "code": "k = 0\nwhile k < 5:\n    k += 2", "ans": "6", "opts": ["4", "5", "6", "Loop"]})
-        qs.append({"q": "Kết quả phép toán: 16 % 3 ** 2", "code": None, "ans": "7", "opts": ["7", "1", "0", "Error"]})
-        qs.append({"q": "List a = [1, 2]. a * 2 là?", "code": None, "ans": "[1, 2, 1, 2]", "opts": "[1, 2, 2, 4]", "opts": ["[2, 4]", "[1, 2, 1, 2]", "Lỗi", "[1, 2]"]})
+        # Dạng 1: Code logic
+        qs.append({"q": "Kết quả: print(10 > 5 and not 3 < 1)", "code": None, "ans": "True", "opts": ["True", "False", "Error", "None"]})
+        qs.append({"q": "Output vòng lặp?", "code": "for i in range(1, 4):\n    print(i, end='')", "ans": "123", "opts": ["123", "1234", "0123", "1 2 3"]})
+        qs.append({"q": "Giá trị k cuối cùng?", "code": "k = 0\nwhile k < 5:\n    k += 2", "ans": "6", "opts": ["4", "5", "6", "Loop"]})
+        qs.append({"q": "Phép toán: 16 % 3 ** 2", "code": None, "ans": "7", "opts": ["7", "1", "0", "16"]})
         
-        # Sinh thêm câu hỏi ngẫu nhiên
-        for i in range(15):
+        # Sinh câu hỏi toán ngẫu nhiên
+        for i in range(20):
             a, b = random.randint(10, 50), random.randint(2, 9)
-            qs.append({
-                "q": f"Kết quả của {a} // {b} + {a} % {b}?", 
-                "code": None, 
-                "ans": str(a//b + a%b), 
-                "opts": [str(a//b + a%b), str(a//b), str(a%b), str(a+b)]
-            })
+            # Chọn phép tính ngẫu nhiên
+            op_type = random.choice(['div_mod', 'compare'])
+            
+            if op_type == 'div_mod':
+                res = a % b
+                qs.append({
+                    "q": f"Kết quả của {a} % {b} là?", 
+                    "code": None, 
+                    "ans": str(res), 
+                    "opts": [str(res), str(a//b), str(res+1), str(b)]
+                })
+            else:
+                target = random.randint(a-5, a+5)
+                res = str(a > target)
+                qs.append({
+                    "q": f"Biểu thức: {a} > {target}", 
+                    "code": None, 
+                    "ans": res, 
+                    "opts": ["True", "False", "Error", "None"]
+                })
+        
+        # Xáo trộn đáp án cho mỗi câu hỏi
+        for q in qs:
+            random.shuffle(q["opts"])
+            
         return qs
 
     def register_team(self, name):
-        if name not in self.teams:
+        if name and name not in self.teams:
             self.teams[name] = 0
+            return True
+        return False
     
     def buzz(self, team_name):
-        # Chỉ chấp nhận đội bấm đầu tiên khi đang ở chế độ STEAL
         if self.mode == "STEAL":
             self.mode = "LOCKED"
             self.buzzer_winner = team_name
-            self.last_updated = time.time()
             return True
         return False
 
+    def check_answer(self, selected_opt):
+        current_q = self.questions[self.current_q_index]
+        correct_ans = current_q['ans']
+        
+        # Xác định đội đang trả lời
+        active_team = self.buzzer_winner if self.mode == "LOCKED" else list(self.teams.keys())[self.turn_index % len(self.teams)]
+        
+        if selected_opt == correct_ans:
+            # ĐÚNG
+            self.teams[active_team] += 10
+            self.last_result = f"✅ CHÍNH XÁC! {active_team} +10 điểm"
+            self.mode = "RESULT" # Chuyển sang màn hình kết quả
+        else:
+            # SAI
+            self.last_result = f"❌ SAI RỒI! Đáp án đúng: {correct_ans}"
+            
+            if self.mode == "QUESTION":
+                # Nếu đang là lượt chính mà sai -> Chuyển sang cướp quyền
+                self.mode = "STEAL"
+                self.buzzer_winner = None
+            else:
+                # Nếu đã cướp quyền mà vẫn sai -> Kết thúc câu
+                self.mode = "RESULT"
+
     def next_question(self):
         self.current_q_index = (self.current_q_index + 1) % len(self.questions)
+        self.turn_index += 1 # Chuyển lượt cho đội tiếp theo
         self.mode = "QUESTION"
         self.buzzer_winner = None
-        self.last_updated = time.time()
+        self.last_result = ""
 
-    def start_steal(self):
-        self.mode = "STEAL"
-        self.buzzer_winner = None
-        self.last_updated = time.time()
+    def start_game(self):
+        self.mode = "QUESTION"
+        self.turn_index = 0
 
-    def add_score(self, team_name, points=10):
-        if team_name in self.teams:
-            self.teams[team_name] += points
-        self.mode = "ANSWERED" # Tạm dừng để giáo viên thao tác tiếp
-
-# Khởi tạo Global Manager
 game = GameManager()
 
-# --- GIAO DIỆN ---
-
-# CSS Tùy chỉnh cho đẹp
-st.markdown("""
-<style>
-    .big-btn { width: 100%; height: 100px !important; font-size: 30px !important; font-weight: bold; border-radius: 15px; }
-    .status-box { padding: 20px; border-radius: 10px; text-align: center; margin-bottom: 20px; color: white; font-weight: bold; font-size: 24px; }
-    .st-emotion-cache-16idsys p { font-size: 1.2rem; }
-</style>
-""", unsafe_allow_html=True)
-
-# Lấy tham số URL để phân biệt Host/Player
-# ?role=host -> Giáo viên
-# Mặc định -> Học sinh
+# --- XỬ LÝ URL ---
 params = st.query_params
 role = params.get("role", "player")
 
 # --- GIAO DIỆN GIÁO VIÊN (HOST) ---
 if role == "host":
-    st.title("👨‍🏫 BẢNG ĐIỀU KHIỂN (HOST)")
+    st.header("👨‍🏫 BẢNG ĐIỀU KHIỂN GIÁO VIÊN")
     
-    col1, col2 = st.columns([1, 2])
-    
-    with col1:
-        st.subheader("📡 Kết Nối")
-        # Tạo mã QR để học sinh quét
-        # Lấy URL hiện tại (trong thực tế cần copy URL trên trình duyệt)
-        # Ở đây ta giả lập hiển thị hướng dẫn
-        st.info("Học sinh truy cập link ứng dụng này để tham gia.")
+    # 1. SIDEBAR: Quản lý đội & QR
+    with st.sidebar:
+        st.subheader("Link tham gia:")
+        # Lấy URL cơ bản (cắt bỏ phần ?role=host)
+        # Lưu ý: Trên localhost có thể cần điều chỉnh tay, trên cloud sẽ tự động đúng
+        base_url = "https://python-arena.streamlit.app/" # Thay bằng link thật khi deploy
+        st.code(base_url, language="text")
         
-        st.subheader("🏆 Bảng Điểm")
-        if not game.teams:
-            st.warning("Chưa có đội nào tham gia.")
-        else:
-            sorted_teams = sorted(game.teams.items(), key=lambda x: x[1], reverse=True)
-            for name, score in sorted_teams:
-                st.write(f"**{name}**: {score} điểm")
+        st.divider()
+        st.subheader(f"👥 Danh sách đội ({len(game.teams)})")
         
+        sorted_teams = sorted(game.teams.items(), key=lambda x: x[1], reverse=True)
+        for name, score in sorted_teams:
+            st.markdown(f"""
+            <div class="team-card">
+                <b>{name}</b><br>
+                <span style="font-size: 24px; font-weight: bold; color: #1E3A8A">{score}</span> điểm
+            </div>
+            """, unsafe_allow_html=True)
+            
         if st.button("🔄 Reset Game Mới"):
             game.reset_game()
             st.rerun()
 
-    with col2:
-        q = game.questions[game.current_q_index]
+    # 2. KHU VỰC CHÍNH
+    if game.mode == "WAITING":
+        st.info("Đang chờ học sinh tham gia... (Màn hình tự làm mới mỗi giây)")
+        if len(game.teams) > 0:
+            if st.button("BẮT ĐẦU GAME NGAY", type="primary", use_container_width=True):
+                game.start_game()
+                st.rerun()
         
-        # Hiển thị trạng thái
-        status_color = "#3B82F6" # Blue
-        status_text = "ĐANG ĐỌC CÂU HỎI"
-        if game.mode == "STEAL":
-            status_color = "#EF4444" # Red
-            status_text = "ĐANG CHỜ CƯỚP QUYỀN..."
-        elif game.mode == "LOCKED":
-            status_color = "#F59E0B" # Orange
-            status_text = f"🔒 {game.buzzer_winner} ĐÃ GIÀNH QUYỀN!"
-        
-        st.markdown(f'<div class="status-box" style="background-color: {status_color};">{status_text}</div>', unsafe_allow_html=True)
+        # Auto-refresh cho màn hình chờ
+        time.sleep(1)
+        st.rerun()
 
-        # Hiển thị câu hỏi
-        st.markdown(f"### Câu {game.current_q_index + 1}: {q['q']}")
-        if q['code']:
-            st.code(q['code'], language="python")
+    else:
+        # Lấy dữ liệu câu hỏi hiện tại
+        q_data = game.questions[game.current_q_index]
+        team_list = list(game.teams.keys())
         
-        st.divider()
-        
-        # Khu vực điều khiển
-        if game.mode == "LOCKED":
-            st.success(f"🔔 Đội **{game.buzzer_winner}** bấm nhanh nhất!")
-            c1, c2 = st.columns(2)
-            if c1.button("✅ Trả lời ĐÚNG (+10đ)", use_container_width=True):
-                game.add_score(game.buzzer_winner, 10)
-                st.rerun()
-            if c2.button("❌ Trả lời SAI (0đ)", use_container_width=True):
-                game.mode = "ANSWERED" # Quay về trạng thái chờ
-                st.rerun()
-                
+        if not team_list:
+            st.error("Không có đội nào!")
+            st.stop()
+            
+        current_turn_team = team_list[game.turn_index % len(team_list)]
+
+        # --- THANH TRẠNG THÁI ---
+        if game.mode == "QUESTION":
+            st.markdown(f'<div class="status-box" style="background-color: #3B82F6;">Lượt của: {current_turn_team}</div>', unsafe_allow_html=True)
         elif game.mode == "STEAL":
-            st.warning("Đang đợi tín hiệu từ điện thoại học sinh...")
-            # Nút hủy nếu không ai trả lời
-            if st.button("Bỏ qua (Không ai trả lời)", use_container_width=True):
-                game.mode = "ANSWERED"
-                st.rerun()
-            # Auto-refresh cho Host để cập nhật khi có người bấm
-            time.sleep(1) 
+            st.markdown('<div class="status-box" style="background-color: #EF4444; animation: pulse 1s infinite;">🚨 ĐANG CƯỚP QUYỀN! Đợi học sinh bấm chuông...</div>', unsafe_allow_html=True)
+            # Auto-refresh để bắt tín hiệu bấm chuông
+            time.sleep(0.5)
             st.rerun()
+        elif game.mode == "LOCKED":
+            st.markdown(f'<div class="status-box" style="background-color: #F59E0B;">⚡ {game.buzzer_winner} GIÀNH ĐƯỢC QUYỀN!</div>', unsafe_allow_html=True)
+        elif game.mode == "RESULT":
+            color = "#10B981" if "✅" in game.last_result else "#EF4444"
+            st.markdown(f'<div class="status-box" style="background-color: {color};">{game.last_result}</div>', unsafe_allow_html=True)
 
-        else: # QUESTION or ANSWERED or WAITING
-            c1, c2 = st.columns(2)
-            with c1:
-                # Nếu đang đọc câu hỏi -> Cho phép mở cướp quyền
-                if st.button("🚨 MỞ CƯỚP QUYỀN", type="primary", use_container_width=True):
-                    game.start_steal()
-                    st.rerun()
-            with c2:
-                if st.button("➡️ Câu tiếp theo", use_container_width=True):
+        # --- HIỂN THỊ CÂU HỎI ---
+        col_q, col_ans = st.columns([2, 1])
+        
+        with col_q:
+            st.markdown(f"### Câu {game.current_q_index + 1}/80")
+            st.info(q_data['q'])
+            if q_data['code']:
+                st.code(q_data['code'], language="python")
+
+        # --- BẢNG CHẤM ĐIỂM (BUTTONS) ---
+        with col_ans:
+            st.write("### Giáo viên chọn đáp án:")
+            
+            if game.mode == "RESULT":
+                if st.button("Câu tiếp theo ➡️", type="primary", use_container_width=True):
                     game.next_question()
                     st.rerun()
-            
-            # Đáp án tham khảo cho giáo viên
-            with st.expander("Xem đáp án đúng"):
-                st.write(f"Đáp án: **{q['ans']}**")
+            elif game.mode == "STEAL":
+                if st.button("Bỏ qua (Không ai trả lời)", use_container_width=True):
+                    game.next_question() # Hoặc xử lý logic khác
+                    st.rerun()
+            else:
+                # Hiển thị 4 nút đáp án
+                # Dùng index để tạo key duy nhất tránh lỗi Streamlit
+                for idx, opt in enumerate(q_data['opts']):
+                    # Nút bấm sẽ gọi check_answer
+                    if st.button(f"{chr(65+idx)}. {opt}", key=f"ans_{idx}", use_container_width=True):
+                        game.check_answer(opt)
+                        st.rerun()
+
+        # Hiển thị đáp án đúng (chỉ giáo viên thấy)
+        with st.expander("👁️ Xem đáp án đúng"):
+            st.write(f"Đáp án: **{q_data['ans']}**")
 
 # --- GIAO DIỆN HỌC SINH (PLAYER) ---
 else:
-    st.title("📱 Màn Hình Thi Đấu")
+    st.header("📱 HỌC SINH")
     
-    # Bước 1: Đăng nhập tên đội
-    if "my_team" not in st.session_state:
-        name = st.text_input("Nhập tên đội của bạn:", placeholder="Ví dụ: Đội 1")
-        if st.button("VÀO GAME") and name:
-            st.session_state.my_team = name
-            game.register_team(name)
-            st.rerun()
-    
-    # Bước 2: Màn hình chờ bấm chuông
-    else:
-        team_name = st.session_state.my_team
-        st.write(f"Đội: **{team_name}** | Điểm: **{game.teams.get(team_name, 0)}**")
-        
-        # Logic hiển thị theo trạng thái Server
-        if game.mode == "STEAL":
-            st.markdown('<div class="status-box" style="background-color: #EF4444; animation: pulse 1s infinite;">🔥 BẤM NGAY! 🔥</div>', unsafe_allow_html=True)
-            
-            # Nút bấm chuông khổng lồ
-            if st.button("GIÀNH QUYỀN TRẢ LỜI", key="buzz_btn"):
-                success = game.buzz(team_name)
-                if success:
-                    st.balloons()
+    if "team_name" not in st.session_state:
+        name = st.text_input("Nhập tên đội:", placeholder="Ví dụ: Đội 1")
+        if st.button("Vào Phòng") and name:
+            if game.register_team(name):
+                st.session_state.team_name = name
                 st.rerun()
+            else:
+                st.error("Tên đội đã tồn tại hoặc không hợp lệ.")
+    else:
+        my_team = st.session_state.team_name
+        score = game.teams.get(my_team, 0)
+        
+        # Header Info
+        st.markdown(f"### Đội: {my_team}")
+        st.metric("Điểm số", score)
+        st.divider()
+
+        # Logic hiển thị theo trạng thái Game
+        if game.mode == "WAITING":
+            st.info("Đang chờ giáo viên bắt đầu...")
             
-            # Thêm style cho nút bấm to ra
+        elif game.mode == "QUESTION":
+            st.write("👀 Nhìn lên bảng. Đang đợi câu trả lời...")
+            
+        elif game.mode == "STEAL":
+            # Nút bấm chuông KHỔNG LỒ
             st.markdown("""
             <style>
                 div.stButton > button:first-child {
-                    height: 200px !important;
-                    font-size: 40px !important;
-                    background-color: #EF4444 !important;
+                    height: 250px !important;
+                    background-color: #ff4b4b !important;
                     color: white !important;
-                    border: 4px solid white !important;
-                    box-shadow: 0 0 20px #EF4444;
+                    font-size: 40px !important;
+                    border: 5px solid white !important;
+                    box-shadow: 0 0 20px #ff4b4b;
+                    animation: pulse 0.5s infinite;
                 }
+                @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
             </style>
             """, unsafe_allow_html=True)
-
-        elif game.mode == "LOCKED":
-            if game.buzzer_winner == team_name:
-                st.success("🎉 BẠN ĐÃ GIÀNH ĐƯỢC QUYỀN TRẢ LỜI!")
-                st.info("Hãy trả lời to cho giáo viên nghe.")
-            else:
-                st.warning(f"🔒 Chậm tay rồi! Đội {game.buzzer_winner} đã giành quyền.")
-        
-        elif game.mode == "QUESTION":
-            st.info("👀 Hãy nhìn lên màn hình máy chiếu và đợi hiệu lệnh...")
             
-        else:
-            st.write("Đang chờ giáo viên...")
+            if st.button("🔔 GIÀNH QUYỀN!"):
+                if game.buzz(my_team):
+                    st.balloons()
+                st.rerun()
+                
+        elif game.mode == "LOCKED":
+            if game.buzzer_winner == my_team:
+                st.success("🎉 BẠN ĐÃ GIÀNH ĐƯỢC QUYỀN! TRẢ LỜI NGAY!")
+            else:
+                st.warning(f"🔒 Đội {game.buzzer_winner} đã giành quyền.")
+                
+        elif game.mode == "RESULT":
+            st.info(f"Kết quả: {game.last_result}")
 
-        # Cơ chế Polling (Tự động cập nhật trạng thái mỗi giây)
-        # Đây là thay thế cho Real-time Socket
+        # Auto-refresh cho học sinh để cập nhật trạng thái liên tục
         time.sleep(1)
         st.rerun()

@@ -66,10 +66,19 @@ st.markdown("""
         text-transform: uppercase; letter-spacing: 2px; border: 4px solid white;
     }
     
-    /* Style riêng cho màn hình chờ */
     .setup-box {
         background: white; padding: 30px; border-radius: 20px;
         box-shadow: 0 10px 20px rgba(0,0,0,0.1); margin-bottom: 20px;
+    }
+
+    /* CSS cho nút chỉnh điểm nhỏ gọn */
+    .small-btn button {
+        height: 40px !important;
+        width: 40px !important;
+        font-size: 18px !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border-radius: 50% !important;
     }
 
     header {visibility: hidden;}
@@ -86,7 +95,7 @@ class GameManager:
 
     def reset_game(self):
         self.teams = {} 
-        self.questions = [] # Để trống ban đầu
+        self.questions = [] 
         self.current_q_index = 0
         self.mode = "WAITING" 
         self.buzzer_winner = None
@@ -132,11 +141,18 @@ class GameManager:
         return len(qs)
 
     def register_team(self, name):
-        if name and name not in self.teams:
-            self.teams[name] = 0
+        # Cho phép đăng ký lại (Reconnect) nếu tên đã tồn tại
+        if name:
+            if name not in self.teams:
+                self.teams[name] = 0 # Đội mới
+            # Nếu tên đã có, vẫn trả về True để học sinh vào lại được (giữ nguyên điểm)
             return True
         return False
     
+    def adjust_score(self, team_name, points):
+        if team_name in self.teams:
+            self.teams[team_name] += points
+
     def buzz(self, team_name):
         if team_name == self.blocked_team: return False
         if self.mode == "STEAL":
@@ -188,13 +204,12 @@ role = params.get("role", "player")
 # ==============================================================================
 if role == "host":
     
-    # 1. GIAO DIỆN PHÒNG CHỜ & SETUP (QUAN TRỌNG: Tách biệt khỏi lúc chơi)
+    # 1. GIAO DIỆN PHÒNG CHỜ & SETUP
     if game.mode == "WAITING":
         st.markdown("<h1 style='text-align: center; color: #064E3B; font-size: 50px;'>🛠️ THIẾT LẬP TRẬN ĐẤU</h1>", unsafe_allow_html=True)
         
         col_setup, col_lobby = st.columns([1, 1], gap="large")
         
-        # Cột Trái: Nhập File Câu Hỏi
         with col_setup:
             st.markdown('<div class="setup-box">', unsafe_allow_html=True)
             st.subheader("1. Nạp Ngân Hàng Câu Hỏi")
@@ -205,25 +220,20 @@ if role == "host":
                 uploaded_file = st.file_uploader("Chọn file câu hỏi", type=['csv', 'xlsx'])
                 if uploaded_file is not None:
                     success, msg = game.load_questions_from_file(uploaded_file)
-                    if success:
-                        st.success(msg)
-                    else:
-                        st.error(msg)
+                    if success: st.success(msg)
+                    else: st.error(msg)
             
             with tab2:
-                if st.button("Sử dụng bộ câu hỏi mẫu (Python 10)"):
+                if st.button("Sử dụng bộ câu hỏi mẫu"):
                     count = game.use_sample_questions()
                     st.success(f"Đã nạp {count} câu hỏi mẫu!")
             
-            # Hiển thị trạng thái câu hỏi
             if game.questions:
                 st.info(f"✅ Đã sẵn sàng: **{len(game.questions)}** câu hỏi.")
             else:
-                st.warning("⚠️ Chưa có câu hỏi. Vui lòng nạp trước khi chơi.")
-            
+                st.warning("⚠️ Chưa có câu hỏi.")
             st.markdown('</div>', unsafe_allow_html=True)
 
-        # Cột Phải: Lobby Đội Chơi
         with col_lobby:
             st.markdown('<div class="setup-box">', unsafe_allow_html=True)
             st.subheader("2. Kết Nối Đội Chơi")
@@ -231,7 +241,7 @@ if role == "host":
             st.code("https://python-arena.streamlit.app/", language="text")
             
             st.markdown("---")
-            st.write(f"**Danh sách đội đã tham gia ({len(game.teams)}):**")
+            st.write(f"**Danh sách đội ({len(game.teams)}):**")
             
             if not game.teams:
                 st.info("Đang chờ kết nối...")
@@ -241,36 +251,44 @@ if role == "host":
                     cols[i%2].success(f"📍 {team}")
             
             st.markdown("---")
-            # Nút bắt đầu chỉ hiện khi có đủ điều kiện
-            start_disabled = False
-            if len(game.questions) == 0:
-                st.error("Cần nạp câu hỏi trước!")
-                start_disabled = True
-            elif len(game.teams) == 0:
-                st.warning("Cần ít nhất 1 đội chơi!")
-                start_disabled = True
+            start_disabled = (len(game.questions) == 0 or len(game.teams) == 0)
             
             if st.button("🚀 BẮT ĐẦU TRẬN ĐẤU", type="primary", disabled=start_disabled, use_container_width=True):
                 game.start_game()
                 st.rerun()
-                
             st.markdown('</div>', unsafe_allow_html=True)
         
-        # Auto-refresh cho lobby
         time.sleep(1)
         st.rerun()
 
-    # 2. GIAO DIỆN TRÌNH CHIẾU KHI CHƠI (GAME BOARD)
+    # 2. GIAO DIỆN TRÌNH CHIẾU
     else:
-        # Sidebar ẩn chứa nút reset
+        # SIDEBAR: Quản lý điểm thủ công
         with st.sidebar:
+            st.header("⚙️ QUẢN LÝ ĐIỂM")
             if st.button("🔄 Reset Game"):
                 game.reset_game()
                 st.rerun()
+            st.divider()
+            st.write("Cập nhật điểm thủ công:")
+            
+            # Danh sách đội với nút +/-
+            sorted_teams_ctrl = sorted(game.teams.items(), key=lambda x: x[0]) # Sắp xếp theo tên để dễ tìm
+            for name, score in sorted_teams_ctrl:
+                c1, c2, c3 = st.columns([2, 1, 1])
+                c1.write(f"**{name}**: {score}")
+                # Sử dụng container css class 'small-btn' nếu cần chỉnh style
+                if c2.button("➕", key=f"add_{name}"):
+                    game.adjust_score(name, 10)
+                    st.rerun()
+                if c3.button("➖", key=f"sub_{name}"):
+                    game.adjust_score(name, -10)
+                    st.rerun()
+            st.divider()
 
         col_score, col_stage = st.columns([1, 3], gap="large")
 
-        # --- BẢNG ĐIỂM ---
+        # --- BẢNG ĐIỂM (HIỂN THỊ) ---
         with col_score:
             st.markdown("<h2 style='color:#064E3B; text-align:center;'>🏆 XẾP HẠNG</h2>", unsafe_allow_html=True)
             sorted_teams = sorted(game.teams.items(), key=lambda x: x[1], reverse=True)
@@ -279,7 +297,6 @@ if role == "host":
 
             for idx, (name, score) in enumerate(sorted_teams):
                 border_color = colors[idx] if idx < 3 else "#ccc"
-                # Highlight đội đang chơi
                 is_active = False
                 if team_list and game.mode == "QUESTION":
                     current_turn_team = team_list[game.turn_index % len(team_list)]
@@ -299,7 +316,6 @@ if role == "host":
             q_data = game.questions[game.current_q_index]
             current_turn_team = team_list[game.turn_index % len(team_list)]
 
-            # THANH TRẠNG THÁI
             if game.mode == "QUESTION":
                 st.markdown(f'<div class="status-banner" style="background: #3B82F6;">LƯỢT CỦA: {current_turn_team}</div>', unsafe_allow_html=True)
             elif game.mode == "STEAL":
@@ -313,7 +329,6 @@ if role == "host":
                 bg = "#10B981" if "CHÍNH XÁC" in game.last_result else "#EF4444"
                 st.markdown(f'<div class="status-banner" style="background: {bg};">{game.last_result}</div>', unsafe_allow_html=True)
 
-            # CÂU HỎI
             st.markdown(f"""
             <div class="question-card">
                 <div style="font-size: 24px; color: #64748B; margin-bottom: 10px; font-weight:bold;">CÂU HỎI {game.current_q_index + 1}/{len(game.questions)}</div>
@@ -326,7 +341,6 @@ if role == "host":
 
             st.write("") 
             
-            # NÚT BẤM (ĐÁP ÁN / ĐIỀU KHIỂN)
             if game.mode == "RESULT":
                 if st.button("CÂU TIẾP THEO ➡️", type="primary", use_container_width=True):
                     game.next_question()
@@ -338,7 +352,6 @@ if role == "host":
             else:
                 c1, c2 = st.columns(2, gap="medium")
                 opts = q_data['opts']
-                # Xử lý nếu thiếu đáp án
                 safe_opts = opts + [""] * (4 - len(opts))
                 
                 with c1:
@@ -362,13 +375,12 @@ else:
 
     if "team_name" not in st.session_state:
         st.markdown("<h1 style='color: #064E3B; text-align: center; margin-top: 50px;'>📱 THAM GIA</h1>", unsafe_allow_html=True)
-        name = st.text_input("Tên đội:", placeholder="VD: Team 1")
+        name = st.text_input("Tên đội (Nếu vào lại hãy nhập đúng tên cũ):", placeholder="VD: Team 1")
         if st.button("VÀO PHÒNG NGAY", type="primary", use_container_width=True) and name:
-            if game.register_team(name):
-                st.session_state.team_name = name
-                st.rerun()
-            else:
-                st.error("Tên này đã có người dùng!")
+            # Luôn trả về True để cho phép Reconnect
+            game.register_team(name)
+            st.session_state.team_name = name
+            st.rerun()
     else:
         my_team = st.session_state.team_name
         
